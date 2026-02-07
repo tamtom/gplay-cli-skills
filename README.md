@@ -87,6 +87,15 @@ Server-side purchase verification for in-app products and subscriptions.
 - You're implementing receipt validation
 - You need to check subscription status
 
+### gplay-ppp-pricing
+
+Region-specific pricing using purchasing power parity (PPP).
+
+**Use when:**
+- You want to set localized prices based on purchasing power per country
+- You need PPP multipliers for IAPs or subscriptions across regions
+- You're migrating existing subscribers to new regional prices
+
 ### gplay-testers-orchestration
 
 Beta testing groups and tester management.
