@@ -110,7 +110,7 @@ Beta testing groups and tester management.
 Install this skill pack:
 
 ```bash
-npx add-skill tamtom/gplay-cli-skills
+npx skills add tamtom/gplay-cli-skills
 ```
 
 ## Usage
