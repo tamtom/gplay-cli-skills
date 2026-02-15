@@ -33,7 +33,7 @@ Use this skill when you need to run or design `gplay` commands for Google Play C
 | `gplay vitals` | App vitals monitoring (crashes, performance, errors) |
 | `gplay users` | User management for developer account |
 | `gplay grants` | App-level permission grants |
-| `gplay reports` | Download financial and install reports |
+| `gplay reports` | Financial and statistics reports (list/download from GCS) |
 | `gplay docs generate` | Generate CLI documentation |
 | `gplay migrate` | Migration tools (e.g., from Fastlane) |
 | `gplay notify` | Send notifications (e.g., Slack, webhook) |
@@ -129,10 +129,18 @@ gplay update
 gplay update --check  # Check for updates without installing
 ```
 
-### Download reports
+### Financial reports
 ```bash
-gplay reports download --package com.example.app --type installs --month 2026-01
-gplay reports download --package com.example.app --type financial --month 2026-01
+gplay reports financial list --developer <id>
+gplay reports financial list --developer <id> --type earnings --from 2026-01 --to 2026-06
+gplay reports financial download --developer <id> --from 2026-01 --type earnings --dir ./reports
+```
+
+### Statistics reports
+```bash
+gplay reports stats list --developer <id>
+gplay reports stats list --developer <id> --package com.example.app --type installs
+gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type installs --dir ./reports
 ```
 
 ### Send notifications

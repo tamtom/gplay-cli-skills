@@ -105,6 +105,63 @@ Beta testing groups and tester management.
 - You need to add/remove testers
 - You're setting up closed testing tracks
 
+### gplay-migrate-fastlane
+
+Fastlane metadata migration to gplay format.
+
+**Use when:**
+- You want to migrate from Fastlane supply to gplay CLI
+- You need to import existing Fastlane metadata directories
+
+### gplay-submission-checks
+
+Pre-submission validation for Google Play releases.
+
+**Use when:**
+- You're preparing a release and want to catch issues before submitting
+- You need to validate metadata, screenshots, bundle integrity, or policy compliance
+
+### gplay-screenshot-automation
+
+Screenshot management workflows.
+
+**Use when:**
+- You need to capture, frame, or upload screenshots across devices and locales
+- You're building screenshot pipelines for Google Play listings
+
+### gplay-subscription-localization
+
+Bulk-localize subscription display names and descriptions.
+
+**Use when:**
+- You want to fill in subscription metadata for every language
+- You need to localize offer tags across all Google Play locales
+
+### gplay-user-management
+
+Developer account user and grant management.
+
+**Use when:**
+- You need to manage developer account users and permissions
+- You need to create, update, or delete app-level permission grants
+
+### gplay-vitals-monitoring
+
+App vitals monitoring for crashes, performance, and errors.
+
+**Use when:**
+- You need to check app stability, crash rates, or ANR rates
+- You want to monitor startup, rendering, or battery performance metrics
+
+### gplay-reports-download
+
+Financial and statistics report listing and downloading from GCS.
+
+**Use when:**
+- You need to list or download financial reports (earnings, sales, payouts)
+- You need to download statistics reports (installs, ratings, crashes)
+- You want to automate monthly report collection
+
 ## Installation
 
 Install this skill pack:
@@ -137,6 +194,10 @@ Sync Fastlane metadata from ./metadata and upload to Play Store
 
 ```
 Respond to all 1-star reviews from the last week
+```
+
+```
+Download last month's earnings report for my developer account
 ```
 
 ## Skill Structure
