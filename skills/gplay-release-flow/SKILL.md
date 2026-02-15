@@ -44,6 +44,56 @@ gplay release \
   --rollout 10
 ```
 
+**Dry run** (preview the release without executing):
+```bash
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app-release.aab \
+  --dry-run
+```
+
+### Release with metadata (listings and screenshots)
+
+**Include store listings from a directory**:
+```bash
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app-release.aab \
+  --listings-dir ./metadata \
+  --screenshots-dir ./metadata
+```
+
+**Skip metadata or screenshots**:
+```bash
+# Upload bundle only, skip metadata sync
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app-release.aab \
+  --skip-metadata
+
+# Upload bundle and metadata, skip screenshots
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app-release.aab \
+  --listings-dir ./metadata \
+  --skip-screenshots
+```
+
+**Combine listings and screenshots directories**:
+```bash
+gplay release \
+  --package com.example.app \
+  --track beta \
+  --bundle app-release.aab \
+  --listings-dir ./metadata/listings \
+  --screenshots-dir ./metadata/images \
+  --release-notes @release-notes.json
+```
+
 ### Manual sequence (when you need more control)
 
 1. **Create edit session**:
@@ -133,6 +183,7 @@ gplay rollout complete --package com.example.app --track production
 
 ## Release Notes Format
 
+### JSON format (multi-locale)
 `release-notes.json`:
 ```json
 {
@@ -142,6 +193,44 @@ gplay rollout complete --package com.example.app --track production
 }
 ```
 
+### Plain text format (single locale)
+You can also provide release notes as plain text for a single locale:
+```bash
+gplay release \
+  --package com.example.app \
+  --track beta \
+  --bundle app.aab \
+  --release-notes "Bug fixes and performance improvements" \
+  --release-notes-locale en-US
+```
+
+Or from a text file:
+```bash
+gplay release \
+  --package com.example.app \
+  --track beta \
+  --bundle app.aab \
+  --release-notes @release-notes.txt \
+  --release-notes-locale en-US
+```
+
+## Release Flags Reference
+
+| Flag | Description |
+|------|-------------|
+| `--package` | App package name (required) |
+| `--track` | Target track (required) |
+| `--bundle` | Path to AAB file (required) |
+| `--release-notes` | Release notes (JSON file with `@`, plain text, or text file with `@`) |
+| `--release-notes-locale` | Locale for plain text release notes (e.g., `en-US`) |
+| `--rollout` | Rollout percentage (1-100) |
+| `--listings-dir` | Directory containing store listings to sync |
+| `--screenshots-dir` | Directory containing screenshots to upload |
+| `--skip-metadata` | Skip metadata/listings sync during release |
+| `--skip-screenshots` | Skip screenshots upload during release |
+| `--dry-run` | Preview the release without executing |
+| `--output` | Output format (`json`, `table`, `markdown`) |
+
 ## Pre-release Checklist
 Before releasing, verify:
 - [ ] Version code is incremented
@@ -150,10 +239,11 @@ Before releasing, verify:
 - [ ] Release notes written for all locales
 - [ ] Testing completed on internal/beta track
 - [ ] Service account has correct permissions
+- [ ] Dry run passes: `gplay release ... --dry-run`
 
 ## Common Release Strategies
 
-**Strategy 1: Internal → Beta → Production**
+**Strategy 1: Internal -> Beta -> Production**
 ```bash
 # Week 1: Internal
 gplay release --package com.example.app --track internal --bundle app.aab
@@ -182,8 +272,33 @@ gplay rollout update --package com.example.app --track production --rollout 50
 gplay rollout complete --package com.example.app --track production
 ```
 
+**Strategy 3: Full release with metadata and dry-run verification**
+```bash
+# 1. Dry run to verify everything
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app.aab \
+  --listings-dir ./metadata \
+  --screenshots-dir ./metadata \
+  --release-notes @release-notes.json \
+  --rollout 10 \
+  --dry-run
+
+# 2. Execute the release
+gplay release \
+  --package com.example.app \
+  --track production \
+  --bundle app.aab \
+  --listings-dir ./metadata \
+  --screenshots-dir ./metadata \
+  --release-notes @release-notes.json \
+  --rollout 10
+```
+
 ## Notes
 - Always use `--help` to verify flags for the exact command.
 - Use `--output table` for human-readable output; default is JSON.
 - For CI/CD, use `GPLAY_SERVICE_ACCOUNT` environment variable.
 - Upload deobfuscation files after each release for crash symbolication.
+- Use `--dry-run` in CI to validate releases before actual deployment.
