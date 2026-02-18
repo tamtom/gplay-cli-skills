@@ -4,6 +4,23 @@ A collection of Agent Skills for shipping with the [Google Play Console CLI](htt
 
 Skills follow the Agent Skills format.
 
+## Installation
+
+Install this skill pack:
+
+```bash
+npx skills add tamtom/gplay-cli-skills
+```
+
+## Updating
+
+Check for updates and pull the latest versions:
+
+```bash
+npx skills check          # check for available updates
+npx skills update         # update all skills to latest versions
+```
+
 ## Available Skills
 
 ### gplay-cli-usage
@@ -161,14 +178,6 @@ Financial and statistics report listing and downloading from GCS.
 - You need to list or download financial reports (earnings, sales, payouts)
 - You need to download statistics reports (installs, ratings, crashes)
 - You want to automate monthly report collection
-
-## Installation
-
-Install this skill pack:
-
-```bash
-npx skills add tamtom/gplay-cli-skills
-```
 
 ## Usage
 
