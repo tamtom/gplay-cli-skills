@@ -71,7 +71,7 @@ gplay reviews list --package com.example.app \
 ```bash
 gplay reviews get \
   --package com.example.app \
-  --review-id REVIEW_ID
+  --review REVIEW_ID
 ```
 
 ## Reply to Reviews
@@ -80,7 +80,7 @@ gplay reviews get \
 ```bash
 gplay reviews reply \
   --package com.example.app \
-  --review-id REVIEW_ID \
+  --review REVIEW_ID \
   --text "Thank you for your feedback! We've fixed this issue in version 1.2.3."
 ```
 
@@ -90,7 +90,7 @@ gplay reviews reply \
 ```bash
 gplay reviews reply \
   --package com.example.app \
-  --review-id REVIEW_ID \
+  --review REVIEW_ID \
   --text "Thank you for reporting this issue. We've identified the problem and a fix will be available in the next update. Please update to version X.X.X when it's released."
 ```
 
@@ -98,7 +98,7 @@ gplay reviews reply \
 ```bash
 gplay reviews reply \
   --package com.example.app \
-  --review-id REVIEW_ID \
+  --review REVIEW_ID \
   --text "Thank you for your suggestion! We've added this to our roadmap and will consider it for a future release."
 ```
 
@@ -106,7 +106,7 @@ gplay reviews reply \
 ```bash
 gplay reviews reply \
   --package com.example.app \
-  --review-id REVIEW_ID \
+  --review REVIEW_ID \
   --text "Thank you so much for your kind words! We're glad you're enjoying the app."
 ```
 
@@ -114,7 +114,7 @@ gplay reviews reply \
 ```bash
 gplay reviews reply \
   --package com.example.app \
-  --review-id REVIEW_ID \
+  --review REVIEW_ID \
   --text "We're sorry you experienced a crash. This issue has been fixed in version X.X.X. Please update and let us know if you continue to have problems."
 ```
 
@@ -133,7 +133,7 @@ gplay reviews list --package $PACKAGE --paginate \
     echo "Replying to review: $REVIEW_ID"
     gplay reviews reply \
       --package $PACKAGE \
-      --review-id "$REVIEW_ID" \
+      --review "$REVIEW_ID" \
       --text "Thank you for your feedback. We're sorry to hear about your experience. Please email support@example.com so we can help resolve this issue."
   done
 ```
