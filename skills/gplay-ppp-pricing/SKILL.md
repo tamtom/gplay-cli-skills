@@ -12,6 +12,31 @@ Use this skill to set different prices for different countries based on purchasi
 - Use `GPLAY_PACKAGE` or pass `--package` explicitly.
 - Know your base region (usually US) and base price.
 
+## Critical: Required flags
+
+When updating subscriptions or one-time products that modify pricing, you **must** provide:
+
+- **`--regions-version`**: Required by the Google Play API when updating regional pricing. Use the **latest** version. If you don't know the current version, send any value (e.g., `"2022/02"`) — the API error will tell you the latest (e.g., `latest value is ExternalRegionLaunchVersionId{versionId=2025/03}`). Then retry with the correct version.
+- **`--update-mask "basePlans"`**: Required for subscription updates. Without it, the API returns: "update_mask must contain at least one path."
+- For one-time products, use `--update-mask "purchaseOptions"`.
+
+## Critical: Preserve all existing regions (fetch-then-merge)
+
+**The Google Play API rejects updates that remove existing regional configs.** If a subscription already has 173 regions configured and you send only 30 PPP regions, the API returns: "Regional configs were removed from the base plan: BM, BO, CI..."
+
+**Always follow the fetch-then-merge pattern:**
+1. Fetch the current product to get ALL existing regional configs
+2. Override only the PPP target regions with your calculated prices
+3. Send the complete merged list (all original regions + PPP overrides)
+
+This also applies to `otherRegionsConfig` for subscriptions — if it was previously set on a base plan, it **must** be included in the update JSON.
+
+## Critical: Currency codes come from Google Play, not from assumptions
+
+**Do NOT hardcode currency-to-region mappings.** Currency codes vary depending on the `--regions-version` value (e.g., Bulgaria BG uses BGN in older versions but EUR in newer versions after eurozone adoption).
+
+**Always use the currency codes from the fetched existing regional configs.** For PPP target regions where you override the price, use the currency from the multiplier table below. For all other regions, preserve the existing currency exactly as returned by Google Play.
+
 ## PPP Multiplier Table
 
 Apply these multipliers to the base USD price. Round all results to `.99` endings (e.g., $4.73 → $4.99, ₹249.37 → ₹249.99).
@@ -66,7 +91,9 @@ Apply these multipliers to the base USD price. Round all results to `.99` ending
 | South Africa | ZA | 0.4x | ZAR |
 | Ukraine | UA | 0.3x | UAH |
 
-## Workflow: Set PPP-Based IAP Pricing
+## Workflow: Set PPP-Based IAP Pricing (legacy `inappproducts` API)
+
+Use this workflow for legacy managed products created via `gplay iap`. These use the `priceMicros`/`currency` format.
 
 ### 1. List in-app products
 ```bash
@@ -77,12 +104,11 @@ gplay iap list --package "PACKAGE"
 ```bash
 gplay iap get --package "PACKAGE" --sku "SKU"
 ```
-Note the current `defaultPrice` as your base price.
+Note the current `defaultPrice` as your base price, and **save all existing `prices` entries**.
 
-### 3. Build PPP-adjusted prices JSON
-Using the base USD price and the multiplier table, compute per-region prices. Round all values to `.99` endings.
+### 3. Build PPP-adjusted prices JSON (fetch-then-merge)
 
-Example: Base price $9.99 USD → India (0.3x) = ₹249.99, Brazil (0.5x) = R$24.99
+**You must include ALL existing region prices, not just PPP targets.** Fetch the current product, then override PPP regions.
 
 ```json
 {
@@ -95,11 +121,6 @@ Example: Base price $9.99 USD → India (0.3x) = ₹249.99, Brazil (0.5x) = R$24
     "US": { "priceMicros": "9990000", "currency": "USD" },
     "IN": { "priceMicros": "2499900", "currency": "INR" },
     "BR": { "priceMicros": "24990000", "currency": "BRL" },
-    "MX": { "priceMicros": "4490000", "currency": "MXN" },
-    "TR": { "priceMicros": "3490000", "currency": "TRY" },
-    "ID": { "priceMicros": "2990000", "currency": "IDR" },
-    "JP": { "priceMicros": "7990000", "currency": "JPY" },
-    "KR": { "priceMicros": "6990000", "currency": "KRW" },
     "GB": { "priceMicros": "9990000", "currency": "GBP" },
     "DE": { "priceMicros": "9990000", "currency": "EUR" }
   }
@@ -118,7 +139,70 @@ gplay iap update \
 ```bash
 gplay iap get --package "PACKAGE" --sku "SKU"
 ```
-Review the `prices` map to confirm all regions are set correctly.
+
+## Workflow: Set PPP-Based One-Time Product Pricing (new monetization API)
+
+Use this workflow for one-time products created via `gplay onetimeproducts`. These use the `units`/`nanos`/`currencyCode` format and have `purchaseOptions` with `regionalPricingAndAvailabilityConfigs`.
+
+### 1. List one-time products
+```bash
+gplay onetimeproducts list --package "PACKAGE"
+```
+
+### 2. Get current product and save all regional configs
+```bash
+gplay onetimeproducts get --package "PACKAGE" --product-id "PRODUCT_ID"
+```
+
+Save the full JSON. Note the `purchaseOptions[].regionalPricingAndAvailabilityConfigs` array — you need ALL entries.
+
+### 3. Build PPP-adjusted JSON (fetch-then-merge)
+
+Start with the **complete** list of existing `regionalPricingAndAvailabilityConfigs`, then override PPP target regions with calculated prices. Keep all other regions unchanged.
+
+Price format uses `units` (whole part as string) and `nanos` (fractional part as integer, 0–999999999):
+- $5.99 → `"units": "5", "nanos": 990000000`
+- ₹149.99 → `"units": "149", "nanos": 990000000`
+- ¥719 → `"units": "719", "nanos": 0`
+
+```json
+{
+  "productId": "premium_lifetime",
+  "purchaseOptions": [
+    {
+      "purchaseOptionId": "EXISTING_OPTION_ID",
+      "buyOption": { "legacyCompatible": true },
+      "otherRegionsConfig": {
+        "usdPrice": { "currencyCode": "USD", "units": "29", "nanos": 990000000 },
+        "eurPrice": { "currencyCode": "EUR", "units": "27", "nanos": 990000000 }
+      },
+      "regionalPricingAndAvailabilityConfigs": [
+        { "regionCode": "US", "availability": "AVAILABLE", "price": { "currencyCode": "USD", "units": "29", "nanos": 990000000 } },
+        { "regionCode": "IN", "availability": "AVAILABLE", "price": { "currencyCode": "INR", "units": "746", "nanos": 990000000 } },
+        { "regionCode": "BR", "availability": "AVAILABLE", "price": { "currencyCode": "BRL", "units": "74", "nanos": 990000000 } },
+        { "regionCode": "AE", "availability": "AVAILABLE", "price": { "currencyCode": "AED", "units": "109", "nanos": 990000000 } }
+      ]
+    }
+  ]
+}
+```
+
+**IMPORTANT:** The `regionalPricingAndAvailabilityConfigs` array must contain ALL regions from the existing product. Only override prices for PPP target regions.
+
+### 4. Patch the product
+```bash
+gplay onetimeproducts patch \
+  --package "PACKAGE" \
+  --product-id "PRODUCT_ID" \
+  --json @ppp-otp.json \
+  --regions-version "2025/03" \
+  --update-mask "purchaseOptions"
+```
+
+### 5. Verify prices
+```bash
+gplay onetimeproducts get --package "PACKAGE" --product-id "PRODUCT_ID"
+```
 
 ## Workflow: Set PPP-Based Subscription Pricing
 
@@ -127,16 +211,21 @@ Review the `prices` map to confirm all regions are set correctly.
 gplay subscriptions list --package "PACKAGE"
 ```
 
-### 2. Get current subscription details
+### 2. Get current subscription and save all regional configs
 ```bash
 gplay subscriptions get --package "PACKAGE" --product-id "PRODUCT_ID"
 ```
-Note the base plans and their current `regionalConfigs`.
 
-### 3. Build PPP-adjusted subscription JSON
-Apply PPP multipliers equally to ALL base plans. Round to `.99` endings.
+Save the full JSON. For each base plan, note:
+- `otherRegionsConfig` (USD and EUR base prices) — **must be included if previously set**
+- `regionalConfigs` array — **must contain ALL existing regions**
+- `autoRenewingBasePlanType` or `prepaidBasePlanType`
 
-Example: Monthly $4.99, Yearly $49.99 with PPP for India (0.3x) and Brazil (0.5x):
+### 3. Build PPP-adjusted subscription JSON (fetch-then-merge)
+
+Start with the **complete** existing `regionalConfigs` for each base plan, then override PPP target regions. Keep all other regions unchanged.
+
+Subscription prices use `units`/`nanos`/`currencyCode` format:
 
 ```json
 {
@@ -144,39 +233,58 @@ Example: Monthly $4.99, Yearly $49.99 with PPP for India (0.3x) and Brazil (0.5x
   "basePlans": [
     {
       "basePlanId": "monthly",
+      "otherRegionsConfig": {
+        "newSubscriberAvailability": true,
+        "usdPrice": { "currencyCode": "USD", "units": "5", "nanos": 990000000 },
+        "eurPrice": { "currencyCode": "EUR", "units": "5", "nanos": 70000000 }
+      },
       "regionalConfigs": [
-        { "regionCode": "US", "price": { "priceMicros": "4990000", "currency": "USD" } },
-        { "regionCode": "IN", "price": { "priceMicros": "1490000", "currency": "INR" } },
-        { "regionCode": "BR", "price": { "priceMicros": "2490000", "currency": "BRL" } }
+        { "regionCode": "US", "newSubscriberAvailability": true, "price": { "currencyCode": "USD", "units": "5", "nanos": 990000000 } },
+        { "regionCode": "IN", "newSubscriberAvailability": true, "price": { "currencyCode": "INR", "units": "149", "nanos": 990000000 } },
+        { "regionCode": "BR", "newSubscriberAvailability": true, "price": { "currencyCode": "BRL", "units": "14", "nanos": 990000000 } },
+        { "regionCode": "AE", "newSubscriberAvailability": true, "price": { "currencyCode": "AED", "units": "22", "nanos": 990000000 } }
       ],
       "autoRenewingBasePlanType": { "billingPeriodDuration": "P1M" }
-    },
-    {
-      "basePlanId": "yearly",
-      "regionalConfigs": [
-        { "regionCode": "US", "price": { "priceMicros": "49990000", "currency": "USD" } },
-        { "regionCode": "IN", "price": { "priceMicros": "14990000", "currency": "INR" } },
-        { "regionCode": "BR", "price": { "priceMicros": "24990000", "currency": "BRL" } }
-      ],
-      "autoRenewingBasePlanType": { "billingPeriodDuration": "P1Y" }
     }
   ]
 }
 ```
+
+**IMPORTANT:** The `regionalConfigs` array must contain ALL regions from the existing base plan. If the subscription already has 173 regions, all 173 must be present. Only override prices for PPP target regions.
 
 ### 4. Update the subscription
 ```bash
 gplay subscriptions update \
   --package "PACKAGE" \
   --product-id "PRODUCT_ID" \
-  --json @ppp-subscription.json
+  --json @ppp-subscription.json \
+  --regions-version "2025/03" \
+  --update-mask "basePlans"
 ```
+
+**All three flags are required:**
+- `--json`: The subscription JSON with merged regional configs
+- `--regions-version`: Use the latest version (see "Discovering the regions version" below)
+- `--update-mask "basePlans"`: Tells the API which fields to update
 
 ### 5. Verify prices
 ```bash
 gplay subscriptions get --package "PACKAGE" --product-id "PRODUCT_ID"
 ```
-Review all `regionalConfigs` across all base plans to confirm prices are correct.
+Review all `regionalConfigs` across all base plans to confirm PPP target regions have updated prices and all other regions are preserved.
+
+## Discovering the regions version
+
+The `--regions-version` flag is required when updating pricing. To find the latest version:
+
+1. Try your update with any version (e.g., `"2022/02"`)
+2. If the version is outdated, the API error will tell you the latest:
+   ```
+   Invalid regions version 2024/01, latest value is ExternalRegionLaunchVersionId{versionId=2025/03}
+   ```
+3. Retry with the version from the error message
+
+**Currency codes can change between versions** (e.g., countries joining the eurozone). Always use the currency codes from the **fetched existing data**, not hardcoded mappings.
 
 ## Workflow: Migrate Existing Subscriber Prices
 
@@ -219,27 +327,35 @@ gplay subscriptions get --package "PACKAGE" --product-id "PRODUCT_ID"
 ## Updating Existing PPP Prices
 
 To change a region's price:
-1. Get the current product/subscription to see existing prices.
+1. Fetch the current product/subscription to get ALL existing regional configs.
 2. Recompute the PPP-adjusted price with the new base price or new multiplier.
-3. Update with the modified JSON (include all regions, not just the changed ones).
-4. For subscriptions with active subscribers, run `migrate-prices` for each affected base plan.
-5. Verify with a fetch + summary review.
+3. Merge the new PPP prices into the complete regional configs list.
+4. Update with the merged JSON (must include ALL regions, not just the changed ones).
+5. For subscriptions with active subscribers, run `migrate-prices` for each affected base plan.
+6. Verify with a fetch + summary review.
 
 ## Batch PPP for Multiple Products
 
-### Multiple IAPs
+### Multiple legacy IAPs
 ```bash
-# Build a JSON file with PPP prices for each SKU
 gplay iap batch-update \
   --package "PACKAGE" \
   --json @ppp-all-iaps.json
 ```
 
+### Multiple one-time products
+```bash
+gplay onetimeproducts batch-update \
+  --package "PACKAGE" \
+  --json @ppp-all-otps.json \
+  --regions-version "2025/03"
+```
+
 ### Multiple subscriptions
 Update each subscription individually:
 ```bash
-gplay subscriptions update --package "PACKAGE" --product-id "sub_1" --json @ppp-sub1.json
-gplay subscriptions update --package "PACKAGE" --product-id "sub_2" --json @ppp-sub2.json
+gplay subscriptions update --package "PACKAGE" --product-id "sub_1" --json @ppp-sub1.json --regions-version "2025/03" --update-mask "basePlans"
+gplay subscriptions update --package "PACKAGE" --product-id "sub_2" --json @ppp-sub2.json --regions-version "2025/03" --update-mask "basePlans"
 ```
 
 ## Common PPP Strategies
@@ -262,6 +378,16 @@ Group countries into pricing tiers:
 - Start with Tier 3 discounts to capture volume in price-sensitive markets.
 - Monitor conversion rates per region after applying PPP.
 - Adjust multipliers based on actual revenue data.
+
+## Common Pitfalls
+
+1. **Sending only PPP regions** — The API rejects updates that remove existing regions. Always fetch-then-merge.
+2. **Missing `--regions-version`** — Required for any pricing update. The API error will tell you the latest version if you guess wrong.
+3. **Missing `--update-mask`** — Use `"basePlans"` for subscriptions, `"purchaseOptions"` for one-time products.
+4. **Missing `otherRegionsConfig`** — If a subscription base plan previously had `otherRegionsConfig` set, it must be included in the update.
+5. **Wrong currency codes** — Don't assume currencies. Fetch from Google Play, as they change between regions versions.
+6. **Mixing API formats** — Legacy IAPs use `priceMicros`/`currency`. New subscriptions and one-time products use `units`/`nanos`/`currencyCode`. Don't mix them.
+7. **`--dry-run` not supported** — The `subscriptions update` and `onetimeproducts patch` commands do not support `--dry-run`. To preview changes safely, review the generated JSON before applying.
 
 ## Notes
 - Price changes for subscriptions apply immediately to new subscribers.
