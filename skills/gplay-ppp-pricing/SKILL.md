@@ -29,7 +29,9 @@ When updating subscriptions or one-time products that modify pricing, you **must
 2. Override only the PPP target regions with your calculated prices
 3. Send the complete merged list (all original regions + PPP overrides)
 
-This also applies to `otherRegionsConfig` for subscriptions — if it was previously set on a base plan, it **must** be included in the update JSON.
+This also applies to:
+- **`otherRegionsConfig`** for subscriptions — if it was previously set on a base plan, it **must** be included in the update JSON.
+- **`newRegionsConfig`** for one-time product purchase options — if it was previously set (with `usdPrice`, `eurPrice`, and `availability`), it **must** be included. Omitting it causes: "Cannot remove currency for new regions once it has been added: EUR."
 
 ## Critical: Currency codes come from Google Play, not from assumptions
 
@@ -154,7 +156,9 @@ gplay onetimeproducts list --package "PACKAGE"
 gplay onetimeproducts get --package "PACKAGE" --product-id "PRODUCT_ID"
 ```
 
-Save the full JSON. Note the `purchaseOptions[].regionalPricingAndAvailabilityConfigs` array — you need ALL entries.
+Save the full JSON. Note:
+- `purchaseOptions[].regionalPricingAndAvailabilityConfigs` array — you need ALL entries
+- `purchaseOptions[].newRegionsConfig` — **must be included if previously set** (contains `usdPrice`, `eurPrice`, `availability`)
 
 ### 3. Build PPP-adjusted JSON (fetch-then-merge)
 
@@ -172,7 +176,8 @@ Price format uses `units` (whole part as string) and `nanos` (fractional part as
     {
       "purchaseOptionId": "EXISTING_OPTION_ID",
       "buyOption": { "legacyCompatible": true },
-      "otherRegionsConfig": {
+      "newRegionsConfig": {
+        "availability": "AVAILABLE",
         "usdPrice": { "currencyCode": "USD", "units": "29", "nanos": 990000000 },
         "eurPrice": { "currencyCode": "EUR", "units": "27", "nanos": 990000000 }
       },
@@ -187,7 +192,9 @@ Price format uses `units` (whole part as string) and `nanos` (fractional part as
 }
 ```
 
-**IMPORTANT:** The `regionalPricingAndAvailabilityConfigs` array must contain ALL regions from the existing product. Only override prices for PPP target regions.
+**IMPORTANT:**
+- The `regionalPricingAndAvailabilityConfigs` array must contain ALL regions from the existing product. Only override prices for PPP target regions.
+- The `newRegionsConfig` must be included if the existing product had it set. Omitting it causes: "Cannot remove currency for new regions once it has been added."
 
 ### 4. Patch the product
 ```bash
@@ -344,11 +351,31 @@ gplay iap batch-update \
 ```
 
 ### Multiple one-time products
+
+For batch updates, `regionsVersion` and `updateMask` go **inside each request** in the JSON (not as CLI flags):
+
 ```bash
 gplay onetimeproducts batch-update \
   --package "PACKAGE" \
-  --json @ppp-all-otps.json \
-  --regions-version "2025/03"
+  --json @ppp-all-otps.json
+```
+
+Batch JSON format:
+```json
+{
+  "requests": [
+    {
+      "oneTimeProduct": { "productId": "product_1", "purchaseOptions": [...] },
+      "regionsVersion": { "version": "2025/03" },
+      "updateMask": "purchaseOptions"
+    },
+    {
+      "oneTimeProduct": { "productId": "product_2", "purchaseOptions": [...] },
+      "regionsVersion": { "version": "2025/03" },
+      "updateMask": "purchaseOptions"
+    }
+  ]
+}
 ```
 
 ### Multiple subscriptions
@@ -385,9 +412,11 @@ Group countries into pricing tiers:
 2. **Missing `--regions-version`** — Required for any pricing update. The API error will tell you the latest version if you guess wrong.
 3. **Missing `--update-mask`** — Use `"basePlans"` for subscriptions, `"purchaseOptions"` for one-time products.
 4. **Missing `otherRegionsConfig`** — If a subscription base plan previously had `otherRegionsConfig` set, it must be included in the update.
-5. **Wrong currency codes** — Don't assume currencies. Fetch from Google Play, as they change between regions versions.
-6. **Mixing API formats** — Legacy IAPs use `priceMicros`/`currency`. New subscriptions and one-time products use `units`/`nanos`/`currencyCode`. Don't mix them.
-7. **`--dry-run` not supported** — The `subscriptions update` and `onetimeproducts patch` commands do not support `--dry-run`. To preview changes safely, review the generated JSON before applying.
+5. **Missing `newRegionsConfig`** — If a one-time product purchase option previously had `newRegionsConfig` set, it must be included. Omitting it causes: "Cannot remove currency for new regions once it has been added."
+6. **Wrong currency codes** — Don't assume currencies. Fetch from Google Play, as they change between regions versions.
+7. **Mixing API formats** — Legacy IAPs use `priceMicros`/`currency`. New subscriptions and one-time products use `units`/`nanos`/`currencyCode`. Don't mix them.
+8. **`--dry-run` is a global flag** — Place it **before** the subcommand: `gplay --dry-run subscriptions update ...`, NOT `gplay subscriptions update --dry-run ...`. The latter fails with "flag provided but not defined."
+9. **Batch-update JSON format** — For `onetimeproducts batch-update` and `subscriptions batch-update`, `regionsVersion` and `updateMask` go **inside each request object** in the JSON, not as CLI flags.
 
 ## Notes
 - Price changes for subscriptions apply immediately to new subscribers.
