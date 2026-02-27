@@ -142,9 +142,77 @@ gplay iap update \
 gplay iap get --package "PACKAGE" --sku "SKU"
 ```
 
-## Workflow: Set PPP-Based One-Time Product Pricing (new monetization API)
+## Workflow: Create New One-Time Product with PPP Pricing
 
-Use this workflow for one-time products created via `gplay onetimeproducts`. These use the `units`/`nanos`/`currencyCode` format and have `purchaseOptions` with `regionalPricingAndAvailabilityConfigs`.
+Use this workflow when creating a **brand new** one-time product with PPP pricing from scratch.
+
+### 1. Reference an existing product for regional config structure
+If you have an existing OTP, fetch it to use as a template for the regional config format:
+```bash
+gplay onetimeproducts get --package "PACKAGE" --product-id "EXISTING_PRODUCT_ID"
+```
+Note the `regionsVersion` and the structure of `regionalPricingAndAvailabilityConfigs`.
+
+### 2. Build the product JSON with PPP pricing
+
+Build the full product JSON including listings, purchase options, and all regional pricing configs. Price format uses `units`/`nanos`/`currencyCode` (see format reference below).
+
+```json
+{
+  "productId": "premium_lifetime_50off",
+  "listings": [
+    { "languageCode": "en-US", "title": "Premium (50% off)", "description": "Lifetime access at 50% off" }
+  ],
+  "purchaseOptions": [
+    {
+      "buyOption": { "legacyCompatible": true },
+      "newRegionsConfig": {
+        "availability": "AVAILABLE",
+        "usdPrice": { "currencyCode": "USD", "units": "14", "nanos": 990000000 },
+        "eurPrice": { "currencyCode": "EUR", "units": "13", "nanos": 990000000 }
+      },
+      "regionalPricingAndAvailabilityConfigs": [
+        { "regionCode": "US", "availability": "AVAILABLE", "price": { "currencyCode": "USD", "units": "14", "nanos": 990000000 } },
+        { "regionCode": "IN", "availability": "AVAILABLE", "price": { "currencyCode": "INR", "units": "373", "nanos": 990000000 } },
+        { "regionCode": "BR", "availability": "AVAILABLE", "price": { "currencyCode": "BRL", "units": "37", "nanos": 990000000 } }
+      ]
+    }
+  ]
+}
+```
+
+### 3. Create the product
+
+**`--regions-version` is required even for creation** — the `create` command uses PATCH with `allowMissing=true` internally:
+```bash
+gplay onetimeproducts create \
+  --package "PACKAGE" \
+  --product-id "premium_lifetime_50off" \
+  --json @new-otp.json \
+  --regions-version "2025/03"
+```
+
+The product is created in **DRAFT** state.
+
+### 4. Activate the purchase option
+
+New products start in DRAFT. Use `purchase-options batch-update-states` to activate:
+```bash
+gplay purchase-options batch-update-states \
+  --package "PACKAGE" \
+  --product-id "premium_lifetime_50off" \
+  --json '{"requests":[{"activatePurchaseOptionRequest":{"packageName":"PACKAGE","productId":"premium_lifetime_50off","purchaseOptionId":"default"}}]}'
+```
+
+### 5. Verify the product
+```bash
+gplay onetimeproducts get --package "PACKAGE" --product-id "premium_lifetime_50off"
+```
+Confirm the state is `ACTIVE` and all regional prices are correct.
+
+## Workflow: Update Existing One-Time Product PPP Pricing (new monetization API)
+
+Use this workflow for **existing** one-time products created via `gplay onetimeproducts`. These use the `units`/`nanos`/`currencyCode` format and have `purchaseOptions` with `regionalPricingAndAvailabilityConfigs`.
 
 ### 1. List one-time products
 ```bash
@@ -417,6 +485,10 @@ Group countries into pricing tiers:
 7. **Mixing API formats** — Legacy IAPs use `priceMicros`/`currency`. New subscriptions and one-time products use `units`/`nanos`/`currencyCode`. Don't mix them.
 8. **`--dry-run` is a global flag** — Place it **before** the subcommand: `gplay --dry-run subscriptions update ...`, NOT `gplay subscriptions update --dry-run ...`. The latter fails with "flag provided but not defined."
 9. **Batch-update JSON format** — For `onetimeproducts batch-update` and `subscriptions batch-update`, `regionsVersion` and `updateMask` go **inside each request object** in the JSON, not as CLI flags.
+10. **Product IDs are permanent** — Google Play permanently reserves product IDs after deletion. If you create a product via `gplay iap create` then delete it, the ID cannot be reused — not even with `gplay onetimeproducts create`. Always choose product IDs carefully. Do **not** create a product via the legacy API and then try to recreate it via the new API.
+11. **New OTP products start in DRAFT** — After `gplay onetimeproducts create`, the purchase option is in DRAFT state. You must activate it with `gplay purchase-options batch-update-states` before it's available to users.
+12. **`--regions-version` is required for create too** — `onetimeproducts create` uses PATCH with `allowMissing=true` internally, so `--regions-version` is required even when creating new products, not just when updating.
+13. **Discover commands with `gplay --help`** — Purchase option activation is under `gplay purchase-options`, not under `gplay onetimeproducts`. Always run `gplay --help` to see all top-level command groups.
 
 ## Notes
 - Price changes for subscriptions apply immediately to new subscribers.
