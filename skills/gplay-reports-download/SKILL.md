@@ -11,7 +11,7 @@ Use this skill when you need to list or download financial reports (earnings, sa
 
 Google Play Console reports are **not available via the REST API**. They are stored as CSV/ZIP files in Google Cloud Storage (GCS) buckets:
 
-- **Bucket name**: `pubsite_prod_rev_<bucket_id>`
+- **Bucket name**: varies by account — either `pubsite_prod_rev_<id>` or `pubsite_prod_<id>`. Always copy the exact URI from Play Console.
 - **Financial reports**: `earnings/`, `sales/`, `payouts/` prefixes
 - **Statistics reports**: `stats/installs/`, `stats/ratings/`, `stats/crashes/`, `stats/store_performance/`, `stats/subscriptions/` prefixes
 
@@ -159,7 +159,6 @@ gplay reports stats download --bucket-id <id> --package com.example.app --from 2
 
 ```json
 {
-  "bucket_id": "12345",
   "bucket": "pubsite_prod_rev_12345",
   "reports": [
     {"name": "earnings/earnings_202601_12345.zip", "size": 1234, "updated": "2026-02-01T00:00:00Z"}
@@ -171,7 +170,7 @@ gplay reports stats download --bucket-id <id> --package com.example.app --from 2
 
 ```json
 {
-  "bucket_id": "12345",
+  "bucket": "pubsite_prod_rev_12345",
   "type": "earnings",
   "from": "2026-01",
   "to": "2026-01",
