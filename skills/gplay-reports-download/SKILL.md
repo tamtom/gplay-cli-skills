@@ -12,8 +12,8 @@ Use this skill when you need to list or download financial reports (earnings, sa
 Google Play Console reports are **not available via the REST API**. They are stored as CSV/ZIP files in Google Cloud Storage (GCS) buckets:
 
 - **Bucket name**: varies by account — either `pubsite_prod_rev_<id>` or `pubsite_prod_<id>`. Always copy the exact URI from Play Console.
-- **Financial reports**: `earnings/`, `sales/`, `payouts/` prefixes
-- **Statistics reports**: `stats/installs/`, `stats/ratings/`, `stats/crashes/`, `stats/store_performance/`, `stats/subscriptions/` prefixes
+- **Financial reports**: `earnings/`, `sales/`, `payouts/`, `play_balance_krw/`, `wht_statements/` prefixes
+- **Statistics reports**: `stats/installs/`, `stats/ratings/`, `stats/crashes/`, `stats/store_performance/`, `financial-stats/subscriptions/` prefixes
 
 The service account must have access to the GCS bucket (this access is granted automatically when the service account is added to Play Console with appropriate permissions).
 
@@ -84,6 +84,8 @@ gplay reports financial download --bucket-id <id> --from 2026-01 --to 2026-06 --
 | `earnings` | Revenue and earnings data | `earnings/earnings_YYYYMM_<id>.zip` |
 | `sales` | Sales transaction reports | `sales/salesreport_YYYYMM.zip` |
 | `payouts` | Payment disbursement reports | `payouts/payout_YYYYMM.csv` |
+| `play_balance` | Play balance reports (KRW) | `play_balance_krw/...` |
+| `wht_statements` | Withholding tax statements | `wht_statements/...` |
 
 ## Statistics reports
 
@@ -124,7 +126,7 @@ gplay reports stats download --bucket-id <id> --package com.example.app --from 2
 | `ratings` | Rating distribution | `stats/ratings/ratings_<pkg>_YYYYMM_overview.csv` |
 | `crashes` | Crash occurrence data | `stats/crashes/crashes_<pkg>_YYYYMM_overview.csv` |
 | `store_performance` | Store listing performance | `stats/store_performance/...` |
-| `subscriptions` | Subscription metrics | `stats/subscriptions/...` |
+| `subscriptions` | Subscription metrics | `financial-stats/subscriptions/...` |
 
 ## Flags reference
 
@@ -133,7 +135,7 @@ gplay reports stats download --bucket-id <id> --package com.example.app --from 2
 | Flag | Required | Description |
 |------|----------|-------------|
 | `--bucket-id` | Yes | GCS bucket ID or full URI |
-| `--type` | No (list: default `all`) / Yes (download) | Report type: `earnings`, `sales`, `payouts`, `all` |
+| `--type` | No (list: default `all`) / Yes (download) | Report type: `earnings`, `sales`, `payouts`, `play_balance`, `wht_statements`, `all` |
 | `--from` | No (list) / Yes (download) | Start month `YYYY-MM` |
 | `--to` | No | End month `YYYY-MM` (defaults to `--from`) |
 | `--dir` | No | Output directory (default `.`) |
