@@ -11,7 +11,7 @@ Use this skill when you need to list or download financial reports (earnings, sa
 
 Google Play Console reports are **not available via the REST API**. They are stored as CSV/ZIP files in Google Cloud Storage (GCS) buckets:
 
-- **Bucket name**: `pubsite_prod_rev_<developer_id>`
+- **Bucket name**: `pubsite_prod_rev_<bucket_id>`
 - **Financial reports**: `earnings/`, `sales/`, `payouts/` prefixes
 - **Statistics reports**: `stats/installs/`, `stats/ratings/`, `stats/crashes/`, `stats/store_performance/`, `stats/subscriptions/` prefixes
 
@@ -20,22 +20,22 @@ The service account must have access to the GCS bucket (this access is granted a
 ## Prerequisites
 
 - A service account configured via `gplay auth login`
-- The GCS developer ID (see below — this is **not** the same as the Play Console URL ID)
+- The GCS bucket ID (see below — this is **not** the same as the Play Console URL developer ID)
 - For financial reports: `VIEW_FINANCIAL_DATA` permission (service account must be added to Play Console with "View financial data" access)
 - For stats reports: `VIEW_APP_INFORMATION` permission (service account must be added to Play Console with "View app information" access)
 
-## Finding your developer ID
+## Finding your bucket ID
 
-> **Important:** The developer ID for reports is **not** the numeric ID in your Play Console URL. The URL ID and the GCS bucket ID are different.
+> **Important:** The bucket ID for reports is **not** the numeric ID in your Play Console URL. The URL ID and the GCS bucket ID are different.
 
-To find the correct developer ID:
+To find the correct bucket ID:
 
 1. Go to **Google Play Console** > **Download reports** (in the left sidebar under "Download reports")
 2. Look for the **Cloud Storage URI** shown on that page, e.g.:
    ```
    gs://pubsite_prod_rev_12110000881713004121/
    ```
-3. The number after `pubsite_prod_rev_` is your developer ID: `12110000881713004121`
+3. You can pass either the full URI or just the numeric ID: `12110000881713004121`
 
 Alternatively, use the Google Cloud Console to find the bucket name associated with your Play Console account.
 
@@ -47,31 +47,34 @@ Alternatively, use the Google Cloud Console to find the bucket name associated w
 
 ```bash
 # List all financial reports
-gplay reports financial list --developer <id>
+gplay reports financial list --bucket-id <id>
+
+# You can also pass the full GCS URI
+gplay reports financial list --bucket-id "gs://pubsite_prod_rev_12345/"
 
 # Filter by type
-gplay reports financial list --developer <id> --type earnings
-gplay reports financial list --developer <id> --type sales
-gplay reports financial list --developer <id> --type payouts
+gplay reports financial list --bucket-id <id> --type earnings
+gplay reports financial list --bucket-id <id> --type sales
+gplay reports financial list --bucket-id <id> --type payouts
 
 # Filter by date range
-gplay reports financial list --developer <id> --from 2026-01 --to 2026-06
+gplay reports financial list --bucket-id <id> --from 2026-01 --to 2026-06
 
 # Combine filters
-gplay reports financial list --developer <id> --type earnings --from 2026-01 --to 2026-03
+gplay reports financial list --bucket-id <id> --type earnings --from 2026-01 --to 2026-03
 ```
 
 ### Download financial reports
 
 ```bash
 # Download earnings for a specific month
-gplay reports financial download --developer <id> --from 2026-01 --type earnings
+gplay reports financial download --bucket-id <id> --from 2026-01 --type earnings
 
 # Download to a specific directory
-gplay reports financial download --developer <id> --from 2026-01 --type earnings --dir ./reports
+gplay reports financial download --bucket-id <id> --from 2026-01 --type earnings --dir ./reports
 
 # Download a range of months
-gplay reports financial download --developer <id> --from 2026-01 --to 2026-06 --type sales
+gplay reports financial download --bucket-id <id> --from 2026-01 --to 2026-06 --type sales
 ```
 
 ### Financial report types
@@ -87,30 +90,30 @@ gplay reports financial download --developer <id> --from 2026-01 --to 2026-06 --
 ### List available statistics reports
 
 ```bash
-# List all stats reports for a developer
-gplay reports stats list --developer <id>
+# List all stats reports
+gplay reports stats list --bucket-id <id>
 
 # Filter by package name
-gplay reports stats list --developer <id> --package com.example.app
+gplay reports stats list --bucket-id <id> --package com.example.app
 
 # Filter by type
-gplay reports stats list --developer <id> --type installs
+gplay reports stats list --bucket-id <id> --type installs
 
 # Filter by date range and package
-gplay reports stats list --developer <id> --package com.example.app --type installs --from 2026-01 --to 2026-06
+gplay reports stats list --bucket-id <id> --package com.example.app --type installs --from 2026-01 --to 2026-06
 ```
 
 ### Download statistics reports
 
 ```bash
 # Download installs report
-gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type installs
+gplay reports stats download --bucket-id <id> --package com.example.app --from 2026-01 --type installs
 
 # Download to a specific directory
-gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type crashes --dir ./reports
+gplay reports stats download --bucket-id <id> --package com.example.app --from 2026-01 --type crashes --dir ./reports
 
 # Download a range of months
-gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --to 2026-06 --type ratings
+gplay reports stats download --bucket-id <id> --package com.example.app --from 2026-01 --to 2026-06 --type ratings
 ```
 
 ### Statistics report types
@@ -129,7 +132,7 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--developer` | Yes | Developer ID |
+| `--bucket-id` | Yes | GCS bucket ID or full URI |
 | `--type` | No (list: default `all`) / Yes (download) | Report type: `earnings`, `sales`, `payouts`, `all` |
 | `--from` | No (list) / Yes (download) | Start month `YYYY-MM` |
 | `--to` | No | End month `YYYY-MM` (defaults to `--from`) |
@@ -141,7 +144,7 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 
 | Flag | Required | Description |
 |------|----------|-------------|
-| `--developer` | Yes | Developer ID |
+| `--bucket-id` | Yes | GCS bucket ID or full URI |
 | `--package` | No (list) / Yes (download) | Package name filter |
 | `--type` | No (list: default `all`) / Yes (download) | Stats type: `installs`, `ratings`, `crashes`, `store_performance`, `subscriptions`, `all` |
 | `--from` | No (list) / Yes (download) | Start month `YYYY-MM` |
@@ -156,7 +159,7 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 
 ```json
 {
-  "developer": "12345",
+  "bucket_id": "12345",
   "bucket": "pubsite_prod_rev_12345",
   "reports": [
     {"name": "earnings/earnings_202601_12345.zip", "size": 1234, "updated": "2026-02-01T00:00:00Z"}
@@ -168,7 +171,7 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 
 ```json
 {
-  "developer": "12345",
+  "bucket_id": "12345",
   "type": "earnings",
   "from": "2026-01",
   "to": "2026-01",
@@ -185,20 +188,20 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 
 ```bash
 # List last month's earnings
-gplay reports financial list --developer <id> --type earnings --from 2026-01 --output table
+gplay reports financial list --bucket-id <id> --type earnings --from 2026-01 --output table
 
 # Download all financial reports for Q1
-gplay reports financial download --developer <id> --from 2026-01 --to 2026-03 --type earnings --dir ./q1-reports
+gplay reports financial download --bucket-id <id> --from 2026-01 --to 2026-03 --type earnings --dir ./q1-reports
 ```
 
 ### App performance monitoring
 
 ```bash
 # Check install trends
-gplay reports stats list --developer <id> --package com.example.app --type installs --from 2026-01
+gplay reports stats list --bucket-id <id> --package com.example.app --type installs --from 2026-01
 
 # Download crash data for analysis
-gplay reports stats download --developer <id> --package com.example.app --from 2026-01 --type crashes --dir ./crash-data
+gplay reports stats download --bucket-id <id> --package com.example.app --from 2026-01 --type crashes --dir ./crash-data
 ```
 
 ### CI/CD automated report collection
@@ -206,7 +209,7 @@ gplay reports stats download --developer <id> --package com.example.app --from 2
 ```bash
 # Download all report types for archival
 for type in earnings sales payouts; do
-  gplay reports financial download --developer $DEV_ID --from $(date -d "last month" +%Y-%m) --type $type --dir ./monthly-reports
+  gplay reports financial download --bucket-id $BUCKET_ID --from $(date -d "last month" +%Y-%m) --type $type --dir ./monthly-reports
 done
 ```
 
@@ -216,5 +219,5 @@ done
 |-------|-------|-----|
 | `authentication failed` | Service account not configured | Run `gplay auth login --service-account <path>` |
 | `403 Forbidden` | No GCS bucket access | Ensure service account is invited in Play Console with appropriate permissions |
-| `404 Not Found` | Wrong developer ID or no reports | Use the GCS developer ID from Play Console > Download reports > Cloud Storage URI (not the URL developer ID) |
+| `404 Not Found` | Wrong bucket ID or no reports | Use the bucket ID from Play Console > Download reports > Copy Cloud Storage URI (not the developer ID from the URL) |
 | Empty reports list | No reports for the date range | Check `--from`/`--to` range; reports may not exist for all months |
