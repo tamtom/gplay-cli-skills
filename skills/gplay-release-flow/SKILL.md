@@ -41,17 +41,19 @@ gplay release \
   --track production \
   --bundle app-release.aab \
   --release-notes @release-notes.json \
-  --rollout 10
+  --rollout 0.1
 ```
 
-**Dry run** (preview the release without executing):
+**Draft release** (upload + configure track without publishing):
 ```bash
 gplay release \
   --package com.example.app \
   --track production \
   --bundle app-release.aab \
-  --dry-run
+  --status draft
 ```
+
+Use `--status draft` when you want to upload the bundle and set up the track but defer the actual rollout (e.g. to wait for marketing approval). Promote later with `gplay tracks update --status inProgress` or `--status completed`.
 
 ### Release with metadata (listings and screenshots)
 
@@ -144,7 +146,7 @@ gplay promote \
   --package com.example.app \
   --from beta \
   --to production \
-  --rollout 25
+  --rollout 0.25
 ```
 
 ## Staged Rollout Management
@@ -155,7 +157,7 @@ gplay release \
   --package com.example.app \
   --track production \
   --bundle app.aab \
-  --rollout 10
+  --rollout 0.1
 ```
 
 **Increase to 50%**:
@@ -163,7 +165,7 @@ gplay release \
 gplay rollout update \
   --package com.example.app \
   --track production \
-  --rollout 50
+  --rollout 0.5
 ```
 
 **Halt rollout** (pause distribution):
@@ -194,14 +196,13 @@ gplay rollout complete --package com.example.app --track production
 ```
 
 ### Plain text format (single locale)
-You can also provide release notes as plain text for a single locale:
+Plain text release notes default to `en-US`:
 ```bash
 gplay release \
   --package com.example.app \
   --track beta \
   --bundle app.aab \
-  --release-notes "Bug fixes and performance improvements" \
-  --release-notes-locale en-US
+  --release-notes "Bug fixes and performance improvements"
 ```
 
 Or from a text file:
@@ -210,9 +211,10 @@ gplay release \
   --package com.example.app \
   --track beta \
   --bundle app.aab \
-  --release-notes @release-notes.txt \
-  --release-notes-locale en-US
+  --release-notes @release-notes.txt
 ```
+
+For multi-locale, pass JSON via `--release-notes @release-notes.json`.
 
 ## Release Flags Reference
 
@@ -221,15 +223,19 @@ gplay release \
 | `--package` | App package name (required) |
 | `--track` | Target track (required) |
 | `--bundle` | Path to AAB file (required) |
-| `--release-notes` | Release notes (JSON file with `@`, plain text, or text file with `@`) |
-| `--release-notes-locale` | Locale for plain text release notes (e.g., `en-US`) |
-| `--rollout` | Rollout percentage (1-100) |
+| `--release-notes` | Release notes: plain text (en-US), JSON object, or `@file` path |
+| `--rollout` | Staged rollout fraction (0.0–1.0, default `1.0` for full rollout) |
+| `--status` | Release status: `draft`, `inProgress`, `halted`, `completed` (default `completed`) |
+| `--version-name` | Version name (defaults to `versionName` extracted from bundle/apk) |
+| `--changes-not-sent-for-review` | Commit edit without sending changes for review |
 | `--listings-dir` | Directory containing store listings to sync |
 | `--screenshots-dir` | Directory containing screenshots to upload |
 | `--skip-metadata` | Skip metadata/listings sync during release |
 | `--skip-screenshots` | Skip screenshots upload during release |
-| `--dry-run` | Preview the release without executing |
+| `--wait` | Wait for processing to complete |
+| `--poll-interval` | Polling interval when `--wait` is set (default 10s) |
 | `--output` | Output format (`json`, `table`, `markdown`) |
+| `--pretty` | Pretty-print JSON output |
 
 ## Pre-release Checklist
 Before releasing, verify:
@@ -239,7 +245,7 @@ Before releasing, verify:
 - [ ] Release notes written for all locales
 - [ ] Testing completed on internal/beta track
 - [ ] Service account has correct permissions
-- [ ] Dry run passes: `gplay release ... --dry-run`
+- [ ] Preflight checks pass: `gplay preflight <bundle>`
 
 ## Common Release Strategies
 
@@ -252,29 +258,29 @@ gplay release --package com.example.app --track internal --bundle app.aab
 gplay promote --package com.example.app --from internal --to beta
 
 # Week 3: Production with staged rollout
-gplay promote --package com.example.app --from beta --to production --rollout 10
-gplay rollout update --package com.example.app --track production --rollout 50  # Day 2
+gplay promote --package com.example.app --from beta --to production --rollout 0.1
+gplay rollout update --package com.example.app --track production --rollout 0.5  # Day 2
 gplay rollout complete --package com.example.app --track production            # Day 7
 ```
 
 **Strategy 2: Direct to Production with Staged Rollout**
 ```bash
 # Day 1: 10%
-gplay release --package com.example.app --track production --bundle app.aab --rollout 10
+gplay release --package com.example.app --track production --bundle app.aab --rollout 0.1
 
 # Day 2: 25%
-gplay rollout update --package com.example.app --track production --rollout 25
+gplay rollout update --package com.example.app --track production --rollout 0.25
 
 # Day 3: 50%
-gplay rollout update --package com.example.app --track production --rollout 50
+gplay rollout update --package com.example.app --track production --rollout 0.5
 
 # Day 7: 100%
 gplay rollout complete --package com.example.app --track production
 ```
 
-**Strategy 3: Full release with metadata and dry-run verification**
+**Strategy 3: Full release with metadata, staged via draft status**
 ```bash
-# 1. Dry run to verify everything
+# 1. Upload + configure track but hold as draft for review
 gplay release \
   --package com.example.app \
   --track production \
@@ -282,18 +288,14 @@ gplay release \
   --listings-dir ./metadata \
   --screenshots-dir ./metadata \
   --release-notes @release-notes.json \
-  --rollout 10 \
-  --dry-run
+  --rollout 0.1 \
+  --status draft
 
-# 2. Execute the release
-gplay release \
+# 2. Promote draft to live once approved
+gplay tracks update \
   --package com.example.app \
   --track production \
-  --bundle app.aab \
-  --listings-dir ./metadata \
-  --screenshots-dir ./metadata \
-  --release-notes @release-notes.json \
-  --rollout 10
+  --status inProgress
 ```
 
 ## Notes
@@ -301,4 +303,6 @@ gplay release \
 - Use `--output table` for human-readable output; default is JSON.
 - For CI/CD, use `GPLAY_SERVICE_ACCOUNT` environment variable.
 - Upload deobfuscation files after each release for crash symbolication.
-- Use `--dry-run` in CI to validate releases before actual deployment.
+- Use `gplay preflight <bundle>` in CI to validate AAB/APK hygiene before release.
+- Use `--status draft` to upload a bundle and configure a track without immediately publishing — promote with `gplay tracks update --status inProgress` once approved.
+- Use `--wait` to block until Play Store processing completes (useful in CI where you want the next step to react to the upload result).

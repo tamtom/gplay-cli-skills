@@ -172,7 +172,7 @@ fi
 | `fastlane supply` | `gplay sync import-listings --dir ./metadata` |
 | `fastlane supply --skip_upload_images` | `gplay sync import-listings --dir ./metadata` |
 | `fastlane supply --track beta` | `gplay release --track beta --bundle app.aab` |
-| `fastlane supply --track production --rollout 0.1` | `gplay release --track production --bundle app.aab --rollout 10` |
+| `fastlane supply --track production --rollout 0.1` | `gplay release --track production --bundle app.aab --rollout 0.1` |
 
 ## Best Practices
 

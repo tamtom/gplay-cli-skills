@@ -247,7 +247,7 @@ gplay promote --package com.example.app --from internal --to beta
 gplay promote --package com.example.app --from beta --to alpha
 
 # Week 4: Production with staged rollout
-gplay promote --package com.example.app --from alpha --to production --rollout 10
+gplay promote --package com.example.app --from alpha --to production --rollout 0.1
 ```
 
 ## Share Testing Links

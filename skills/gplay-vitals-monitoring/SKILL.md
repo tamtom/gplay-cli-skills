@@ -234,7 +234,7 @@ gplay promote \
   --package com.example.app \
   --from beta \
   --to production \
-  --rollout 10
+  --rollout 0.1
 ```
 
 ## Best Practices
