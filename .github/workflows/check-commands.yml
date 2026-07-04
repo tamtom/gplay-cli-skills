@@ -1,0 +1,27 @@
+name: Check skill commands
+
+# Guards against skills drifting from the real gplay CLI surface. Fetches the
+# CLI's generated command reference (GPLAY.md) and verifies every `gplay`
+# command and flag used in the skills exists.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch CLI command reference
+        run: curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/GPLAY.md -o /tmp/GPLAY.md
+
+      - name: Verify skill commands against the CLI
+        run: python3 scripts/check-commands.py --reference /tmp/GPLAY.md

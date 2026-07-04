@@ -50,15 +50,6 @@ End-to-end release workflows for internal, beta, and production tracks.
 - You need the manual sequence for fine-grained control
 - You're releasing to multiple tracks
 
-### gplay-signing-setup
-
-Android app signing, keystores, and Play App Signing.
-
-**Use when:**
-- You are setting up signing for a new app
-- You need to migrate to Play App Signing
-- You need to create or rotate signing keys
-
 ### gplay-metadata-sync
 
 Metadata and localization sync (including Fastlane format).
@@ -70,12 +61,13 @@ Metadata and localization sync (including Fastlane format).
 
 ### gplay-iap-setup
 
-In-app products, subscriptions, base plans, and offers.
+In-app products, subscriptions, base plans, offers, and bulk subscription localization.
 
 **Use when:**
 - You are setting up in-app purchases or subscriptions
 - You need to create subscription offers or pricing
 - You're managing monetization products
+- You need to bulk-localize subscription display names/descriptions across locales
 
 ### gplay-review-management
 
@@ -140,19 +132,11 @@ Pre-submission validation for Google Play releases.
 
 ### gplay-screenshot-automation
 
-Screenshot management workflows.
+Upload and validate Play Store screenshots with gplay.
 
 **Use when:**
-- You need to capture, frame, or upload screenshots across devices and locales
-- You're building screenshot pipelines for Google Play listings
-
-### gplay-subscription-localization
-
-Bulk-localize subscription display names and descriptions.
-
-**Use when:**
-- You want to fill in subscription metadata for every language
-- You need to localize offer tags across all Google Play locales
+- You need to upload or replace screenshots across locales and device types
+- You need to validate screenshot dimensions before a release
 
 ### gplay-user-management
 
@@ -215,6 +199,22 @@ Each skill contains:
 - `SKILL.md` - Instructions for the agent
 - `scripts/` - Helper scripts for automation (optional)
 - `references/` - Supporting documentation (optional)
+
+## Development
+
+Every `gplay` command and flag used in a skill is validated against the CLI's
+generated command reference (`GPLAY.md`) so the skills can't drift from the real
+CLI surface:
+
+```bash
+# Validate against the current CLI on main
+python3 scripts/check-commands.py
+
+# Or against a local checkout of the CLI
+python3 scripts/check-commands.py --reference ../play-console-cli/GPLAY.md
+```
+
+CI runs this on every push and pull request (`.github/workflows/check-commands.yml`).
 
 ## License
 
