@@ -122,6 +122,17 @@ Fastlane metadata migration to gplay format.
 - You want to migrate from Fastlane supply to gplay CLI
 - You need to import existing Fastlane metadata directories
 
+### gplay-preflight
+
+Offline compliance and hygiene scanning of an AAB or APK — no credentials, no
+API calls. Nine scanners over a fully decoded `AndroidManifest.xml`.
+
+**Use when:**
+- You're about to upload a build and want to catch rejections first
+- You need a CI gate that runs before any Play credentials are available
+- You're diagnosing an install failure, a Play rejection, or a 16 KB page
+  alignment problem
+
 ### gplay-submission-checks
 
 Pre-submission validation for Google Play releases.
