@@ -1,0 +1,12 @@
+{
+  "name": "gplay",
+  "description": "Skills for releases, rollouts, metadata, in-app purchases, reviews, vitals and reports with the gplay CLI",
+  "author": {
+    "name": "tamtom",
+    "url": "https://github.com/tamtom"
+  },
+  "homepage": "https://github.com/tamtom/play-console-cli",
+  "repository": "https://github.com/tamtom/gplay-cli-skills",
+  "license": "MIT",
+  "keywords": ["google-play", "android", "play-console", "gplay", "release"]
+}

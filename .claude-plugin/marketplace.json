@@ -1,0 +1,16 @@
+{
+  "name": "gplay-cli-skills",
+  "description": "Agent skills for the Google Play Console CLI (gplay)",
+  "owner": {
+    "name": "tamtom",
+    "url": "https://github.com/tamtom"
+  },
+  "plugins": [
+    {
+      "name": "gplay",
+      "source": "./",
+      "description": "Skills for releases, rollouts, metadata, in-app purchases, reviews, vitals and reports with the gplay CLI",
+      "category": "development"
+    }
+  ]
+}
