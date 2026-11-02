@@ -12,6 +12,17 @@ Install this skill pack:
 npx skills add tamtom/gplay-cli-skills
 ```
 
+### Claude Code plugin
+
+The repo is also a [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces). Add it and install the `gplay` plugin from inside Claude Code:
+
+```
+/plugin marketplace add tamtom/gplay-cli-skills
+/plugin install gplay@gplay-cli-skills
+```
+
+The skills then load as `gplay:<skill-name>`, for example `gplay:gplay-release-flow`. Pull the latest skills with `/plugin marketplace update gplay-cli-skills`.
+
 ## Updating
 
 Check for updates and pull the latest versions:
